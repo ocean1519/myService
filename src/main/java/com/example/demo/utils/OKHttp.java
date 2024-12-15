@@ -49,22 +49,6 @@ public class OKHttp {
         }
     }
 
-    public static String postJsonAsync(String url, String body, Callback callback) {
-        return postJsonAsync(url, body, null, callback);
-    }
-
-    public static String postJsonAsync(String url, String body, Map<String, String> headers, Callback callback) {
-
-        RequestBody requestBody = RequestBody.create(MediaType.get("application/json"), body);
-        Request request = new Request.Builder()
-                .url(url)
-                .post(requestBody)
-                .headers(Headers.of(headers == null ? new HashMap<>() : headers))
-                .build();
-        client.newCall(request).enqueue(callback);
-        return "请求成功";
-    }
-
     public static String postJson(String url, String body) {
         return postJson(url, body, null);
     }
@@ -109,10 +93,17 @@ public class OKHttp {
     }
 
     public static void main(String[] args) throws NoSuchAlgorithmException {
-        Long timestamp = System.currentTimeMillis();
         for (int i = 0; i < 10; i++) {
-            String body = "{\"pageNum\":1,\"pageSize\":8,\"params\":{\"contentTypes\":[11,12,16],\"firstColumnId\":81}}";
-            System.out.println(OKHttp.postJsonAsync("https://liveapi.cn/djb/yb-strategy-api-ntk/contentManager/getContentsList", body, new Callback() {
+            Map<String, String> paramMap = new HashMap<>();
+            paramMap.put("phone", String.valueOf(13234210000L + i));
+            paramMap.put("postTime", String.valueOf(System.currentTimeMillis()));
+            paramMap.put("sign", createSign(paramMap, "YB-0TW37UG9"));
+
+            Map<String, String> header = new HashMap<>();
+            header.put("remote-host", "changqing.100live.cn");
+            paramMap.put("businessId",  "3");
+            //System.out.println(OKHttp.postJson("https://liveapi.cn/djb/yb-user-api-ntk/user/third/login", JSON.toJSONString(paramMap), header));
+            System.out.println(OKHttp.getAsync("https://liveapi.cn/djb/yb-cms-api-ntk/titles/getTitles/1/1", new Callback() {
                 @Override
                 public void onFailure(@NotNull Call call, @NotNull IOException e) {
                     System.out.println("失败");
@@ -123,7 +114,26 @@ public class OKHttp {
                     System.out.println("返回结果:" + response.body().string());
                 }
             }));
+            //System.out.println("手机号:" + 13234210000L + i);
         }
-        System.out.println(System.currentTimeMillis() - timestamp);
+    }
+
+    public static String createSign(Map<String, String> params, String securitKey) throws NoSuchAlgorithmException {
+        StringBuilder sb = new StringBuilder();
+        // 将参数以参数名的字典升序排序
+        Map<String, String> sortParams = new TreeMap<>(params);
+        // 遍历排序的字典,并拼接"key=value"格式
+        for (Map.Entry<String, String> entry : sortParams.entrySet()) {
+            String key = entry.getKey();
+            String value =  entry.getValue().trim();
+            if (!StringUtils.isEmpty(value))
+                sb.append("&").append(key).append("=").append(value);
+        }
+        String urlAppend = sb.toString().replaceFirst("&","");
+        String stringSignTemp = urlAppend + "&" + "key=" + securitKey;
+        //将签名使用MD5加密并全部字母变为大写
+        String signValue = DigestUtils.md5Hex(stringSignTemp).toUpperCase();
+        System.out.println(signValue);
+        return signValue;
     }
 }

@@ -1,5 +1,5 @@
 // 创建一个新的 EventSource 对象，指向你的 SSE 端点
-const eventSource = new EventSource('http://192.168.83.94:8080/connect/' + Date.now());
+const eventSource = new EventSource('http://192.168.83.51:8080/connect/' + Date.now());
 
 // 当成功建立连接时触发
 eventSource.onopen = function(event) {
