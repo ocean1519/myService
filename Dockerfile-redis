@@ -1,0 +1,18 @@
+# 使用官方 Redis 镜像作为基础镜像
+FROM redis:latest
+
+# 设置环境变量以启用 AOF 持久化（可选）
+ENV REDIS_PASSWORD=mypassword
+
+# 创建数据卷挂载点（这一步是可选的，因为可以在 docker run 时指定）
+VOLUME ["/data"]
+
+# 复制自定义启动脚本到容器中（如果需要更复杂的启动逻辑）
+# COPY entrypoint.sh /usr/local/bin/
+# RUN chmod +x /usr/local/bin/entrypoint.sh
+
+# 设置默认启动命令，确保使用 AOF 持久化
+CMD ["redis-server", "--appendonly", "yes"]
+
+# 暴露 Redis 默认端口
+EXPOSE 6379

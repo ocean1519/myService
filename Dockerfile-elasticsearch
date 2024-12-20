@@ -1,0 +1,22 @@
+# 使用官方 Elasticsearch 镜像作为基础镜像
+FROM elasticsearch:8.10.3
+
+# 设置环境变量，用于设置 Elasticsearch 密码
+ENV ELASTIC_PASSWORD=mypassword
+ENV discovery.type=single-node
+ENV ES_JAVA_OPTS="-Xms1024m -Xmx1024m"
+
+# 创建一个自定义配置文件并复制到容器中
+COPY elasticsearch.yml /usr/share/elasticsearch/config/
+
+# 安装 X-Pack 插件（在较新的版本中，默认已经包含）
+# RUN elasticsearch-plugin install x-pack
+
+# 设置数据卷挂载点（可选）
+VOLUME ["/usr/share/elasticsearch/data"]
+
+# 暴露 Elasticsearch 默认端口
+EXPOSE 9200 9300
+
+# 启动命令，确保使用了正确的配置
+CMD ["elasticsearch"]

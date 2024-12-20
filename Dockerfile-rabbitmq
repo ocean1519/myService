@@ -1,0 +1,21 @@
+# 使用官方 RabbitMQ 镜像作为基础镜像
+FROM rabbitmq:3-management
+
+# 设置环境变量，用于设置默认的用户名和密码
+ENV RABBITMQ_DEFAULT_USER=myuser \
+    RABBITMQ_DEFAULT_PASS=mypassword
+
+# 创建数据卷挂载点（可选），如果希望在构建阶段就定义好持久化路径
+VOLUME ["/var/lib/rabbitmq/mnesia"]
+
+# 如果需要安装额外的依赖或者配置，可以在这一部分添加相应的指令
+# RUN apt-get update && apt-get install -y ...
+
+# 暴露 RabbitMQ 的默认端口
+EXPOSE 5672 15672
+
+# [可选] 在容器启动时执行的命令（通常不需要，因为RabbitMQ镜像已经包含了CMD指令）
+# CMD ["rabbitmq-server"]
+
+# [可选] 如果有初始化脚本或其他配置文件，可以在此处复制到镜像中
+# COPY ./init-scripts /docker-entrypoint-initdb.d

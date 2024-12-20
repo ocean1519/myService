@@ -1,116 +1,133 @@
 package com.example.demo.service;
 
-import com.alibaba.fastjson2.JSON;
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.Result;
+import co.elastic.clients.elasticsearch._types.query_dsl.Operator;
+import co.elastic.clients.elasticsearch.core.*;
+import co.elastic.clients.elasticsearch.core.search.Hit;
+import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
+import co.elastic.clients.elasticsearch.indices.CreateIndexResponse;
+import co.elastic.clients.elasticsearch.indices.ExistsRequest;
+import co.elastic.clients.json.JsonData;
+import co.elastic.clients.json.jackson.JacksonJsonpMapper;
+import co.elastic.clients.transport.endpoints.BooleanResponse;
+import co.elastic.clients.transport.rest_client.RestClientTransport;
+import com.example.demo.config.ElasticsearchConfig;
 import com.example.demo.entity.EsUser;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.action.bulk.BulkRequest;
-import org.elasticsearch.action.bulk.BulkResponse;
-import org.elasticsearch.action.delete.DeleteRequest;
-import org.elasticsearch.action.delete.DeleteResponse;
-import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.action.index.IndexResponse;
-import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.action.support.WriteRequest;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
-import org.elasticsearch.action.update.UpdateRequest;
-import org.elasticsearch.action.update.UpdateResponse;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.RestHighLevelClient;
-import org.elasticsearch.client.indices.CreateIndexRequest;
-import org.elasticsearch.client.indices.CreateIndexResponse;
-import org.elasticsearch.client.indices.GetIndexRequest;
-import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.search.SearchHit;
+import org.apache.http.HttpHost;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.elasticsearch.client.RestClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 @Service
 public class EsUserService {
 
-
     @Autowired
-    private RestHighLevelClient restHighLevelClient;
+    private ElasticsearchClient client;
 
     // 创建或更新产品
     public Boolean indexExists() throws IOException {
-        EsUser esUser = EsUser.builder().id("1").name("testUser").age(30).description("test").build();
-        String idx = "es_user";
-        boolean exists = restHighLevelClient.indices().exists(new GetIndexRequest(idx), RequestOptions.DEFAULT);
-        if (!exists) {
-            CreateIndexRequest request = new CreateIndexRequest(idx);
-            CreateIndexResponse response = restHighLevelClient.indices().create(request, RequestOptions.DEFAULT);
-            System.out.println(response.index() + "   创建index成功");
-            exists = restHighLevelClient.indices().exists(new GetIndexRequest(idx), RequestOptions.DEFAULT);
-            System.out.println(exists + "   创建index返回");
 
-        }
+        createIndex();
 
-        String id = "1";
-        //新增文档
-        IndexRequest indexRequest = new IndexRequest(idx);
-        indexRequest.id(id);
-        indexRequest.source(JSON.toJSONString(esUser), XContentType.JSON);
-        indexRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
-        IndexResponse index = restHighLevelClient.index(indexRequest, RequestOptions.DEFAULT);
-        System.out.println("状态：" + index.status().getStatus());
+        saveDocument();
 
-        //修改文档
-        UpdateRequest updateRequest = new UpdateRequest(idx, id);
-        Map<String, Object> map = new HashMap<>();
-        map.put("name", "testUser1");
-        updateRequest.doc(map);
-        UpdateResponse update = restHighLevelClient.update(updateRequest, RequestOptions.DEFAULT);
-        System.out.println("状态：" + update.status().getStatus());
+        updateDocument();
 
-        //删除文档
-        DeleteRequest deleteRequest = new DeleteRequest(idx,id);
-        DeleteResponse delete = restHighLevelClient.delete(deleteRequest, RequestOptions.DEFAULT);
-        System.out.println("状态：" + delete.status().getStatus());
+        deleteDocument();
 
-        //批量新增文档
-        List<EsUser> list = new ArrayList<>();
+        queryDocument();
 
-        EsUser esUserBulk1 = EsUser.builder().id("10").name("testUser10").age(30).description("testUser10").build();
-        list.add(esUserBulk1);
-
-        EsUser esUserBulk2 = EsUser.builder().id("11").name("testUser11").age(30).description("testUser11").build();
-        list.add(esUserBulk2);
-
-        EsUser esUserBulk3 = EsUser.builder().id("12").name("testUser12").age(30).description("testUser12").build();
-        list.add(esUserBulk3);
-
-        //批量导入
-        BulkRequest bulk = new BulkRequest(idx);
-
-        for (EsUser doc : list) {
-            IndexRequest idxRequest = new IndexRequest();
-            idxRequest.id(doc.getId().toString());
-            idxRequest.source(JSON.toJSONString(doc), XContentType.JSON);
-            bulk.add(idxRequest);
-        }
-        BulkResponse bulkResponse = restHighLevelClient.bulk(bulk, RequestOptions.DEFAULT);
-        System.out.println("状态：" + bulkResponse.status().getStatus());
-
-        SearchRequest searchRequest = new SearchRequest();
-        searchRequest.indices(idx);
-        SearchResponse searchResponse = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
-        SearchHit[] hits = searchResponse.getHits().getHits();
-        for (SearchHit hit : hits) {
-            System.out.println("查询结果: " + hit.getSourceAsString());
-        }
-        restHighLevelClient.close();
-        //删除索引
-        //DeleteIndexRequest deleteIndexRequest = new DeleteIndexRequest(idx);
-        //AcknowledgedResponse acknowledgedResponse = restHighLevelClient.indices().delete(deleteIndexRequest, RequestOptions.DEFAULT);
-        //System.out.println(acknowledgedResponse.isAcknowledged() + "   是否已删除");
-        return exists;
+        queryHighDocument();
+        return false;
     }
 
+    private void createIndex() throws IOException {
+        ExistsRequest indexReq = new ExistsRequest.Builder().index("es_user1").build();
+        BooleanResponse exist = client.indices().exists(indexReq);
+        if (!exist.value()) {
+            CreateIndexRequest indexRequest = new CreateIndexRequest.Builder().index("es_user1").build();
+            CreateIndexResponse response = client.indices().create(indexRequest);
+            if (response.acknowledged()) {
+                System.out.println("Index create successfully.");
+            }
+        }
+
+    }
+
+    private void queryHighDocument() {
+
+    }
+
+    private void queryDocument() throws IOException {
+        SearchRequest searchRequest = new SearchRequest.Builder()
+                .index("es_user")
+                .query(q -> q
+                        .match(m -> m
+                                .field("name")
+                                .query("testUser")
+                                .operator(Operator.And)
+                        )
+                ).build();
+        SearchResponse<EsUser> response = client.search(searchRequest, EsUser.class);
+        long totalHits = response.hits().total().value();
+        System.out.println("Total hits: " + totalHits);
+        for (Hit<EsUser> hit : response.hits().hits()) {
+            EsUser user = hit.source();
+            System.out.println("Found user: " + user.getName());
+        }
+        System.out.println();
+    }
+
+    private void deleteDocument() throws IOException {
+
+        co.elastic.clients.elasticsearch.core.ExistsRequest indexReq = new co.elastic.clients.elasticsearch.core.ExistsRequest.Builder().index("es_user1").id("2").build();
+        if (client.exists(indexReq).value()) {
+            System.out.println("Document exist");
+        }
+
+        DeleteRequest request = new DeleteRequest.Builder().index("es_user").id("2").build();
+
+        DeleteResponse response = client.delete(request);
+        // 检查响应结果
+        if (Result.Deleted == response.result()) {
+            System.out.println("Document delete successfully.");
+        }
+    }
+
+    private void updateDocument() throws IOException {
+        EsUser esUser = new EsUser();
+        esUser.setAge(41);
+        UpdateRequest request = new UpdateRequest.Builder().index("es_user").id("2").doc(esUser).build();
+        UpdateResponse<EsUser> response = client.update(request, EsUser.class);
+        // 检查响应结果
+        if (Result.Updated == response.result()) {
+            System.out.println("Document update successfully.");
+        }
+    }
+
+    public void saveDocument() throws IOException {
+        // 创建一个新的用户对象
+        EsUser user = new EsUser("2", "testUser", "test", 30);
+
+        // 创建索引请求并执行
+        IndexRequest<EsUser> request = new IndexRequest.Builder<EsUser>()
+                .index("es_user")
+                .id(user.getId())
+                .document(user)
+                .build();
+
+        IndexResponse response = client.index(request);
+
+        // 检查响应结果
+        if (Result.Created == response.result()) {
+            System.out.println("Document indexed successfully.");
+        }
+    }
 }

@@ -52,12 +52,12 @@ public class SendReceiveMessage implements RabbitTemplate.ConfirmCallback {
     @RabbitListener(queues = "myQueueA", ackMode = "MANUAL")
     public void receiveMessage(String message, Channel channel, org.springframework.amqp.core.Message messageObj) throws Exception {
         //消息确认
-        // 1.开启手动确认模式spring.rabbitmq.listener.simple.acknowledge-mode=manual
+        // 1.开启手动确认模式spring.rabbitmq.listener.simple.acknowledge-mode=manual或者注解ackMode = "MANUAL"
         // 2.channel.basicAck(messageObj.getMessageProperties().getDeliveryTag(), false); getDeliveryTag=唯一标识;false=不批量确认
         // 3.channel.basicNack(messageObj.getMessageProperties().getDeliveryTag(), false, false); getDeliveryTag=唯一标识;false=不批量确认;false不重回队列
         //广播消息不确认,重启还会收到消息
         channel.basicNack(messageObj.getMessageProperties().getDeliveryTag(), false, false);
-        LOGGER.info("收到单个消息：" + message);
+        LOGGER.info("收到单个消息：{}", message);
 
         JSONObject mjo = JSON.parseObject(message);
         String id = mjo.getString("id");
@@ -65,20 +65,20 @@ public class SendReceiveMessage implements RabbitTemplate.ConfirmCallback {
             SseEmitter sseEmitter = sseEmitterMap.get(id);
             Map<String, String> map = new HashMap<>();
             map.put("data", message);
-            LOGGER.info("userId: " + id);
+            LOGGER.info("userId: {}", id);
             sseEmitter.send(map, MediaType.APPLICATION_JSON);
         }
     }
 
     @RabbitListener(queues = "queue.a", ackMode = "MANUAL")
     public void receiveQueueA(String message, Channel channel,  org.springframework.amqp.core.Message messageObj) throws IOException {
-        LOGGER.info("收到广播消息:{}" + message);
+        LOGGER.info("收到广播消息:{}", message);
         //消息确认
-        // 1.开启手动确认模式spring.rabbitmq.listener.simple.acknowledge-mode=manual
+        // 1.开启手动确认模式spring.rabbitmq.listener.simple.acknowledge-mode=manual或者注解ackMode = "MANUAL"
         // 2.channel.basicAck(messageObj.getMessageProperties().getDeliveryTag(), false); getDeliveryTag=唯一标识;false=不批量确认
         // 3.channel.basicNack(messageObj.getMessageProperties().getDeliveryTag(), false, false); getDeliveryTag=唯一标识;false=不批量确认;false不重回队列
         //广播消息不确认,重启还会收到消息
-        channel.basicNack(messageObj.getMessageProperties().getDeliveryTag(), false, false);
+
         MessageData m = JSON.parseObject(message, MessageData.class);
         m.setTotal(sseEmitterMap.size());
 
@@ -90,6 +90,8 @@ public class SendReceiveMessage implements RabbitTemplate.ConfirmCallback {
                 e.printStackTrace();
             }
         });
+        //int i = 0/0;//如果异常,消息不会重回队列,下次启动还会收到消息
+        channel.basicNack(messageObj.getMessageProperties().getDeliveryTag(), false, false);
     }
 
     public static class MessageData {

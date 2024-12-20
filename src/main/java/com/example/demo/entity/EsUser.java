@@ -14,4 +14,5 @@ public class EsUser {
     private String name;
     private String description;
     private Integer age;
+    public EsUser() {}
 }
