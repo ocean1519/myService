@@ -1,6 +1,7 @@
 package com.example.demo.controller;
 
 import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONObject;
 import com.example.demo.config.RedisConfig;
 import com.example.demo.service.SendReceiveMessage;
 import com.example.demo.utils.SafeThreadPoolExample;
@@ -15,8 +16,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -38,7 +37,7 @@ public class Test {
     private RedisTemplate redisTemplate;
 
     @GetMapping(value = "/redis", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public String redisTopic() throws IOException {
+    public String redisTopic() {
         redisTemplate.convertAndSend(RedisConfig.CHANNEL_GLOBAL_NAME, "test" + System.currentTimeMillis());
         return "OK";
     }
@@ -61,7 +60,7 @@ public class Test {
             sseEmitterMap.remove(id);
             LOGGER.info("断开连接:{}", id);
         });
-        System.out.println("timeout:" + sseEmitter.getTimeout());
+
         // 连接超时
         sseEmitter.onTimeout(() -> {
             sseEmitterMap.remove(id);
@@ -76,25 +75,22 @@ public class Test {
 
         sseEmitterMap.put(id, sseEmitter);
         LOGGER.info("users:{}", JSON.toJSONString(sseEmitterMap.keySet()));
-
-        SendReceiveMessage.Message message = new SendReceiveMessage.Message();
-        DateTimeFormatter format = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        message.setData(LocalDateTime.now().format(format));
-        receiveMessage.sendMessage(message);
         return sseEmitter;
     }
 
     @GetMapping(value = "/send/{id}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public String sendMessage(@PathVariable String id) throws IOException {
-
-        receiveMessage.sendOneMessage(id, "hello " + id);
+        JSONObject json = new JSONObject();
+        json.put("id", id);
+        json.put("message", "hello " + id);
+        receiveMessage.sendOneMessage(json.toJSONString());
         return "OK";
     }
 
     @GetMapping(value = "/send/all/{message}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public String sendAllMessage(@PathVariable String message) {
 
-        SendReceiveMessage.Message data = new SendReceiveMessage.Message();
+        SendReceiveMessage.MessageData data = new SendReceiveMessage.MessageData();
         data.setData(message);
         receiveMessage.sendMessage(data);
         return "OK";

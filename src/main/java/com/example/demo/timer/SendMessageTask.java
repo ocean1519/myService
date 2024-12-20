@@ -20,7 +20,7 @@ public class SendMessageTask {
      */
     @Scheduled(cron = "*/5 * * * * *")  // 间隔60秒
     public void sendMessageTask() {
-        SendReceiveMessage.Message message = new SendReceiveMessage.Message();
+        SendReceiveMessage.MessageData message = new SendReceiveMessage.MessageData();
         DateTimeFormatter format = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         message.setData("心跳检测: " + LocalDateTime.now().format(format));
         receiveMessage.sendMessage(message);

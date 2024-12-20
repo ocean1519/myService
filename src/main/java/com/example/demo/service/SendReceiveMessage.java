@@ -1,9 +1,11 @@
 package com.example.demo.service;
 
 import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONObject;
 import com.rabbitmq.client.Channel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.connection.CorrelationData;
@@ -37,18 +39,14 @@ public class SendReceiveMessage implements RabbitTemplate.ConfirmCallback {
     }
 
 
-    public void sendMessage(SendReceiveMessage.Message message) {
+    public void sendMessage(SendReceiveMessage.MessageData message) {
         rabbitTemplate.setConfirmCallback(this);
-        rabbitTemplate.convertAndSend("myExchangeA", "routingKeyA", new org.springframework.amqp.core.Message(JSON.toJSONString(message).getBytes(), new MessageProperties()), new CorrelationData("单个消息=" + System.currentTimeMillis()));
 
-        rabbitTemplate.convertAndSend("topic.exchange", "send.message", new org.springframework.amqp.core.Message(JSON.toJSONString(message).getBytes(), new MessageProperties()), new CorrelationData("广播消息" + System.currentTimeMillis()));
+        rabbitTemplate.convertAndSend("topic.exchange", "send.message", new Message(JSON.toJSONString(message).getBytes(), new MessageProperties()), new CorrelationData("广播消息" + System.currentTimeMillis()));
     }
 
-    public void sendOneMessage(String id, String message) throws IOException {
-        SseEmitter sseEmitter = sseEmitterMap.get(id);
-        Map<String, String> map = new HashMap<>();
-        map.put("data", message);
-        sseEmitter.send(map, MediaType.APPLICATION_JSON);
+    public void sendOneMessage(String message) throws IOException {
+        rabbitTemplate.convertAndSend("myExchangeA", "routingKeyA", new Message(JSON.toJSONString(message).getBytes(), new MessageProperties()), new CorrelationData("单个消息=" + System.currentTimeMillis()));
     }
 
     @RabbitListener(queues = "myQueueA", ackMode = "MANUAL")
@@ -60,16 +58,16 @@ public class SendReceiveMessage implements RabbitTemplate.ConfirmCallback {
         //广播消息不确认,重启还会收到消息
         channel.basicNack(messageObj.getMessageProperties().getDeliveryTag(), false, false);
         LOGGER.info("收到单个消息：" + message);
-        Message m = JSON.parseObject(message, Message.class);
-        m.setTotal(sseEmitterMap.size());
-        sseEmitterMap.forEach((uuid, sseEmitter) -> {
-            try {
-                LOGGER.info("用户id: " + uuid);
-                sseEmitter.send(m, MediaType.APPLICATION_JSON_UTF8);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        });
+
+        JSONObject mjo = JSON.parseObject(message);
+        String id = mjo.getString("id");
+        if (sseEmitterMap.containsKey(id)) {
+            SseEmitter sseEmitter = sseEmitterMap.get(id);
+            Map<String, String> map = new HashMap<>();
+            map.put("data", message);
+            LOGGER.info("userId: " + id);
+            sseEmitter.send(map, MediaType.APPLICATION_JSON);
+        }
     }
 
     @RabbitListener(queues = "queue.a", ackMode = "MANUAL")
@@ -81,11 +79,12 @@ public class SendReceiveMessage implements RabbitTemplate.ConfirmCallback {
         // 3.channel.basicNack(messageObj.getMessageProperties().getDeliveryTag(), false, false); getDeliveryTag=唯一标识;false=不批量确认;false不重回队列
         //广播消息不确认,重启还会收到消息
         channel.basicNack(messageObj.getMessageProperties().getDeliveryTag(), false, false);
-        Message m = JSON.parseObject(message, Message.class);
+        MessageData m = JSON.parseObject(message, MessageData.class);
         m.setTotal(sseEmitterMap.size());
 
-        sseEmitterMap.forEach((uuid, sseEmitter) -> {
+        sseEmitterMap.forEach((id, sseEmitter) -> {
             try {
+                LOGGER.info("userId: " + id);
                 sseEmitter.send(m, MediaType.APPLICATION_JSON_UTF8);
             } catch (IOException e) {
                 e.printStackTrace();
@@ -93,7 +92,7 @@ public class SendReceiveMessage implements RabbitTemplate.ConfirmCallback {
         });
     }
 
-    public static class Message {
+    public static class MessageData {
         private String data;
         private Integer total;
 
