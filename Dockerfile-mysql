@@ -1,0 +1,14 @@
+# 使用官方 MySQL 镜像作为基础镜像
+FROM mysql:8.0
+
+# 设置环境变量，避免启动时传递过多参数
+ENV MYSQL_ROOT_PASSWORD=mypassword \
+    MYSQL_DATABASE=mydatabase \
+    MYSQL_USER=myuser \
+    MYSQL_PASSWORD=mypassword
+
+# 创建数据卷挂载点（这一步是可选的，因为可以在 docker run 时指定）
+VOLUME ["/var/lib/mysql"]
+
+# 暴露 mysq 默认端口
+EXPOSE 3306
