@@ -33,3 +33,30 @@ function displayEvent(data) {
     li.textContent = `Message at ` + JSON.stringify((data));
     ul.insertBefore(li, ul.firstChild);
 }
+
+document.addEventListener('DOMContentLoaded', (event) => {
+    const button = document.getElementById('requestButton');
+
+    if (button) {
+        button.addEventListener('click', function() {
+            console.log('Button clicked, initiating fetch...');
+
+            fetch('http://192.168.83.51:8080/redis')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok ' + response.statusText);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Data received:', data);
+                    displayEvent(data);
+                })
+                .catch(error => {
+                    console.error('Error occurred during fetch:', error);
+                });
+        });
+    } else {
+        console.error('Button with id "requestButton" not found.');
+    }
+});
