@@ -10,6 +10,8 @@ eventSource.onopen = function(event) {
 eventSource.onmessage = function(event) {
     const data = JSON.parse(event.data);
     displayEvent(data);
+    console.log(data)
+    updateTable(data.data);
 };
 
 // 处理特定类型的事件 (如果服务器发送了带有 type 的事件)
@@ -34,14 +36,91 @@ function displayEvent(data) {
     ul.insertBefore(li, ul.firstChild);
 }
 
+function updateTable(dataList) {
+    const tableBody = document.querySelector('#user-table tbody');
+    // 清空当前表格内容
+    tableBody.innerHTML = '';
+    dataList.forEach(item => {
+        const row = document.createElement('tr');
+
+        // 创建姓名单元格
+        const nameCell = document.createElement('td');
+        nameCell.textContent = item.id;
+        row.appendChild(nameCell);
+
+        // 创建状态单元格
+        const statusCell = document.createElement('td');
+        statusCell.textContent = item.status;
+        row.appendChild(statusCell);
+
+        // 创建发送单元格，包含一个输入框
+        const sendCell = document.createElement('td');
+        const input = document.createElement('input');
+        console.log(input)
+        input.type = 'text';
+        input.placeholder = '发送信息';
+
+        const button = document.createElement('button');
+        button.textContent = '发送消息';
+
+        row.appendChild(input);
+        row.appendChild(button);
+
+        // 为按钮添加点击事件监听器
+        button.addEventListener('click', function() {
+            alert(item.id)
+            alert(input.value)
+            // 打印这一行的id
+            console.log('Row ID:', item.id);
+            // 如果你想获取输入框的内容，可以这样做：
+            console.log('Message:', input.value);
+
+            // fetch('http://192.168.83.51:8080/redis', {
+            //     method: 'POST',
+            //     headers: {
+            //         'Content-Type': 'application/json'
+            //     },
+            //     body: JSON.stringify({
+            //         "msg": requestValue
+            //     })
+            // })
+            //     .then(response => {
+            //         if (!response.ok) {
+            //             throw new Error('Network response was not ok ' + response.statusText);
+            //         }
+            //         return response.json();
+            //     })
+            //     .then(data => {
+            //         console.log('Data received:', data);
+            //         displayEvent(data);
+            //     })
+            //     .catch(error => {
+            //         console.error('Error occurred during fetch:', error);
+            //     });
+        });
+
+
+        // 添加行到表格主体
+        tableBody.appendChild(row);
+    });
+}
+
 document.addEventListener('DOMContentLoaded', (event) => {
     const button = document.getElementById('requestButton');
 
     if (button) {
         button.addEventListener('click', function() {
             console.log('Button clicked, initiating fetch...');
-
-            fetch('http://192.168.83.51:8080/redis')
+            const requestValue = document.getElementById('requestInput').value;
+            fetch('http://192.168.83.51:8080/redis', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    "msg": requestValue
+                })
+            })
                 .then(response => {
                     if (!response.ok) {
                         throw new Error('Network response was not ok ' + response.statusText);

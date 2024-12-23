@@ -94,15 +94,15 @@ public class SendReceiveMessage implements RabbitTemplate.ConfirmCallback {
         channel.basicNack(messageObj.getMessageProperties().getDeliveryTag(), false, false);
     }
 
-    public static class MessageData {
-        private String data;
+    public static class MessageData<T> {
+        private T data;
         private Integer total;
 
-        public String getData() {
+        public T getData() {
             return data;
         }
 
-        public void setData(String data) {
+        public void setData(T data) {
             this.data = data;
         }
 

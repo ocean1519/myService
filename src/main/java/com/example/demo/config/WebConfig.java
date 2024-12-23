@@ -20,7 +20,7 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.authorizeHttpRequests(authorize -> authorize
+        http.csrf(csrf -> csrf.disable()).authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/static/**", "/css/**", "/js/**", "/images/**").permitAll()
                         .requestMatchers("/",
                                 "/index.html",

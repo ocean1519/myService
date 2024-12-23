@@ -8,11 +8,10 @@ import com.example.demo.utils.SafeThreadPoolExample;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
@@ -21,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
 @RestController
@@ -36,9 +36,10 @@ public class Test {
     @Autowired
     private RedisTemplate redisTemplate;
 
-    @GetMapping(value = "/redis", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public String redisTopic() {
-        redisTemplate.convertAndSend(RedisConfig.CHANNEL_GLOBAL_NAME, "test" + System.currentTimeMillis());
+    @PostMapping(value = "/redis", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public String redisTopic(@RequestBody JSONObject jsonObject) {
+        String requestBody = jsonObject.getString("msg");
+        redisTemplate.convertAndSend(RedisConfig.CHANNEL_GLOBAL_NAME, requestBody);
         return "OK";
     }
     @GetMapping(value = "/connect/{id}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -58,22 +59,26 @@ public class Test {
         // 连接断开
         sseEmitter.onCompletion(() -> {
             sseEmitterMap.remove(id);
+            redisTemplate.opsForHash().delete("allUser", id);
             LOGGER.info("断开连接:{}", id);
         });
 
         // 连接超时
         sseEmitter.onTimeout(() -> {
             sseEmitterMap.remove(id);
+            redisTemplate.opsForHash().delete("allUser", id);
             LOGGER.info("连接超时:{}", id);
         });
 
         // 连接报错
         sseEmitter.onError((throwable) -> {
             sseEmitterMap.remove(id);
+            redisTemplate.opsForHash().delete("allUser", id);
             LOGGER.info("连接报错:{}", id);
         });
 
         sseEmitterMap.put(id, sseEmitter);
+        redisTemplate.opsForHash().put("allUser", id, "OK");
         LOGGER.info("users:{}", JSON.toJSONString(sseEmitterMap.keySet()));
         return sseEmitter;
     }
