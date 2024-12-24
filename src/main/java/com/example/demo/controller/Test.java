@@ -3,6 +3,7 @@ package com.example.demo.controller;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.example.demo.config.RedisConfig;
+import com.example.demo.entity.User;
 import com.example.demo.service.SendReceiveMessage;
 import com.example.demo.utils.SafeThreadPoolExample;
 import org.slf4j.Logger;
@@ -11,10 +12,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.MediaType;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -49,13 +53,6 @@ public class Test {
 
         SseEmitter sseEmitter = new SseEmitter(0L);
 
-        // 连接成功需要返回数据，否则会出现待处理状态
-        try {
-            sseEmitter.send(SseEmitter.event().comment("welcome"));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
         // 连接断开
         sseEmitter.onCompletion(() -> {
             sseEmitterMap.remove(id);
@@ -80,6 +77,24 @@ public class Test {
         sseEmitterMap.put(id, sseEmitter);
         redisTemplate.opsForHash().put("allUser", id, "OK");
         LOGGER.info("users:{}", JSON.toJSONString(sseEmitterMap.keySet()));
+
+        // 连接成功需要返回数据，否则会出现待处理状态
+        try {
+            SendReceiveMessage.MessageData message = new SendReceiveMessage.MessageData();
+            DateTimeFormatter format = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            Map<String, String> allUserMap = redisTemplate.opsForHash().entries("allUser");
+            List<User> users = new ArrayList<>();
+            if (!CollectionUtils.isEmpty(allUserMap)) {
+                allUserMap.forEach((k, v) -> {
+                    users.add(User.builder().id(k).status(v).build());
+                });
+            }
+            message.setData(format.format(LocalDateTime.now()));
+            message.setUsers(users);
+            sseEmitter.send(message, MediaType.APPLICATION_JSON);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         return sseEmitter;
     }
 

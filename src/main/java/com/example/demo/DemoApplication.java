@@ -30,6 +30,7 @@ public class DemoApplication {
 		executeCommand("docker run -d --name elasticsearch -p 9200:9200 -p 9300:9300 -e \"ELASTIC_PASSWORD=mypassword\" -e \"discovery.type=single-node\" -e \"ES_JAVA_OPTS=-Xms512m -Xmx512m\" -v C:/data/elasticsearch:/usr/share/elasticsearch/data test-elasticsearch-image");
 		executeCommand("docker build -f Dockerfile-mysql -t test-mysql-image .");
 		executeCommand("docker run -d --name mysql -e MYSQL_ROOT_PASSWORD=mypassword -e MYSQL_USER=myuser -e MYSQL_PASSWORD=mypassword -e MYSQL_DATABASE=user -v C:/data/mysql:/var/lib/mysql -p 3306:3306 test-mysql-image");
+		Thread.sleep(5000);
 		SpringApplication.run(DemoApplication.class, args);
 	}
 
