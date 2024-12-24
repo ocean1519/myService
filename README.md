@@ -10,7 +10,7 @@ docker run -d --name rabbitmq -e RABBITMQ_DEFAULT_USER=myuser -e RABBITMQ_DEFAUL
 
 docker build -f Dockerfile-redis -t test-redis-image .
 
-docker run -d --name redis -p 6379:6379 --mount type=bind,source=C:\data\redis,destination=/data test-redis-image
+docker run -d --name redis -p 6379:6379 -v C:/data/redis,destination=/data test-redis-image
 
 docker build -f Dockerfile-elasticsearch -t test-elasticsearch-image .
 
@@ -18,4 +18,4 @@ docker run -d --name elasticsearch -p 9200:9200 -p 9300:9300 -e "ELASTIC_PASSWOR
 
 docker build -f Dockerfile-mysql -t test-mysql-image .
 
-docker run -d --name mysql -e MYSQL_ROOT_PASSWORD=mypassword -e MYSQL_USER=myuser -e MYSQL_PASSWORD=mypassword -e MYSQL_DATABASE=user -v c:/data/mysql:/var/lib/mysql -p 3306:3306 test-mysql-image
+docker run -d --name mysql -e MYSQL_ROOT_PASSWORD=mypassword -e MYSQL_USER=myuser -e MYSQL_PASSWORD=mypassword -e MYSQL_DATABASE=user -v c:/data/mysql:/var/lib/mysql -p 3306:3306 test-mysql-image .

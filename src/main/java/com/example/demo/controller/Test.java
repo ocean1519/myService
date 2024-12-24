@@ -92,6 +92,15 @@ public class Test {
         return "OK";
     }
 
+    @PostMapping(value = "/send", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public String sendMsg(@RequestBody JSONObject param) throws IOException {
+        JSONObject json = new JSONObject();
+        json.put("id", param.get("id"));
+        json.put("message", param.getString("message"));
+        receiveMessage.sendOneMessage(json.toJSONString());
+        return "OK";
+    }
+
     @GetMapping(value = "/send/all/{message}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public String sendAllMessage(@PathVariable String message) {
 

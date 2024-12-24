@@ -25,6 +25,7 @@ public class WebConfig implements WebMvcConfigurer {
                         .requestMatchers("/",
                                 "/index.html",
                                 "/redis",
+                                "/send",
                                 "/connect/**").permitAll() // 允许所有用户访问根路径和/home路径
                         .anyRequest().authenticated() // 所有其他请求都需要认证
                 ).logout(logout -> logout.permitAll()); // 允许所有用户执行注销操作

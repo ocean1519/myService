@@ -11,7 +11,9 @@ eventSource.onmessage = function(event) {
     const data = JSON.parse(event.data);
     displayEvent(data);
     console.log(data)
-    updateTable(data.data);
+    //if (data.event != undefined && data.event === 'singleMessage') {
+        updateTable(data.users);
+    //}
 };
 
 // 处理特定类型的事件 (如果服务器发送了带有 type 的事件)
@@ -29,7 +31,6 @@ eventSource.onerror = function(error) {
 
 // 显示接收到的事件
 function displayEvent(data) {
-    console.log(data)
     const ul = document.getElementById('event-list');
     const li = document.createElement('li');
     li.textContent = `Message at ` + JSON.stringify((data));
@@ -56,7 +57,6 @@ function updateTable(dataList) {
         // 创建发送单元格，包含一个输入框
         const sendCell = document.createElement('td');
         const input = document.createElement('input');
-        console.log(input)
         input.type = 'text';
         input.placeholder = '发送信息';
 
@@ -68,35 +68,30 @@ function updateTable(dataList) {
 
         // 为按钮添加点击事件监听器
         button.addEventListener('click', function() {
-            alert(item.id)
-            alert(input.value)
-            // 打印这一行的id
-            console.log('Row ID:', item.id);
-            // 如果你想获取输入框的内容，可以这样做：
-            console.log('Message:', input.value);
 
-            // fetch('http://192.168.83.51:8080/redis', {
-            //     method: 'POST',
-            //     headers: {
-            //         'Content-Type': 'application/json'
-            //     },
-            //     body: JSON.stringify({
-            //         "msg": requestValue
-            //     })
-            // })
-            //     .then(response => {
-            //         if (!response.ok) {
-            //             throw new Error('Network response was not ok ' + response.statusText);
-            //         }
-            //         return response.json();
-            //     })
-            //     .then(data => {
-            //         console.log('Data received:', data);
-            //         displayEvent(data);
-            //     })
-            //     .catch(error => {
-            //         console.error('Error occurred during fetch:', error);
-            //     });
+            fetch('http://192.168.83.51:8080/send', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    "id": item.id,
+                    "message": input.value
+                })
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok ' + response.statusText);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Data received:', data);
+                    displayEvent(data);
+                })
+                .catch(error => {
+                    console.error('Error occurred during fetch:', error);
+                });
         });
 
 
@@ -110,7 +105,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
     if (button) {
         button.addEventListener('click', function() {
-            console.log('Button clicked, initiating fetch...');
             const requestValue = document.getElementById('requestInput').value;
             fetch('http://192.168.83.51:8080/redis', {
                 method: 'POST',

@@ -28,7 +28,7 @@ public class SendMessageTask {
     /**
      * 定时执行 秒 分 时 日 月 周
      */
-    @Scheduled(cron = "*/5 * * * * *")  // 间隔60秒
+    @Scheduled(cron = "*/10 * * * * *")  // 间隔60秒
     public void sendMessageTask() {
         SendReceiveMessage.MessageData message = new SendReceiveMessage.MessageData();
         DateTimeFormatter format = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -39,7 +39,8 @@ public class SendMessageTask {
                 users.add(User.builder().id(k).status(v).build());
             });
         }
-        message.setData(users);
+        message.setData(format.format(LocalDateTime.now()));
+        message.setUsers(users);
         receiveMessage.sendMessage(message);
     }
 }
