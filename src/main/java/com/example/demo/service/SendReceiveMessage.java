@@ -108,13 +108,13 @@ public class SendReceiveMessage implements RabbitTemplate.ConfirmCallback {
 
         MessageData m = JSON.parseObject(message, MessageData.class);
         m.setTotal(users.size());
-
+        LOGGER.info("ssEmitterMap:{}", sseEmitterMap);
         sseEmitterMap.forEach((id, sseEmitter) -> {
             try {
                 LOGGER.info("userId: {}", id);
                 sseEmitter.send(m, MediaType.APPLICATION_JSON_UTF8);
             } catch (IOException e) {
-                e.printStackTrace();
+                LOGGER.warn(e.getMessage());
             }
         });
         //int i = 0/0;//如果异常,消息不会重回队列,下次启动还会收到消息
