@@ -17,19 +17,4 @@ public class WebConfig implements WebMvcConfigurer {
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS") // 允许所有HTTP方法
                 .allowCredentials(false); // 允许携带cookie
     }
-
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.csrf(csrf -> csrf.disable()).authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/static/**", "/css/**", "/js/**", "/images/**").permitAll()
-                        .requestMatchers("/",
-                                "/index.html",
-                                "/redis",
-                                "/send",
-                                "/connect/**").permitAll() // 允许所有用户访问根路径和/home路径
-                        .anyRequest().authenticated() // 所有其他请求都需要认证
-                ).logout(logout -> logout.permitAll()); // 允许所有用户执行注销操作
-
-        return http.build();
-    }
 }
