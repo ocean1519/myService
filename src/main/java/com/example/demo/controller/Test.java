@@ -2,10 +2,16 @@ package com.example.demo.controller;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.demo.config.RedisConfig;
+import com.example.demo.entity.TestUser;
 import com.example.demo.entity.User;
+import com.example.demo.mapper.UserMapper;
 import com.example.demo.service.SendReceiveMessage;
 import com.example.demo.utils.SafeThreadPoolExample;
+import jakarta.annotation.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +26,7 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -113,6 +120,22 @@ public class Test {
         json.put("id", param.get("id"));
         json.put("message", param.getString("message"));
         receiveMessage.sendOneMessage(json.toJSONString());
+        return "OK";
+    }
+
+    @Autowired
+    private UserMapper userMapper;
+
+    @PostMapping(value = "/send/test/mysql", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public String sendTestMysql() {
+        userMapper.insert(TestUser.builder().username("test" + System.currentTimeMillis()).password(String.valueOf(System.currentTimeMillis())).build());
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", 2);
+        List<TestUser> resultList = userMapper.selectByMap(map);
+        TestUser testUser = userMapper.selectByUsernameAndPassword("test1", "password1");
+
+        Page pageResult = userMapper.selectPage(new Page(1, 10), null);
+        Page pageResult1 = userMapper.selectAll(new Page(1, 10), TestUser.builder().id(1).build());
         return "OK";
     }
 
