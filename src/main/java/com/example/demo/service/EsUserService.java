@@ -32,7 +32,7 @@ public class EsUserService {
     private ElasticsearchClient client;
 
     // 创建或更新产品
-    public Boolean indexExists() throws IOException {
+    public Boolean testEs() throws IOException {
 
         createIndex();
 

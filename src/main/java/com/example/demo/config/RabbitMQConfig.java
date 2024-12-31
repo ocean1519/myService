@@ -49,20 +49,19 @@ public class RabbitMQConfig {
         return new TopicExchange(TOPIC_EXCHANGE_NAME, true, false);
     }
 
-    // 创建队列 A
+    // 创建队列 topic.queue
     @Bean
-    public Queue queueA() {
-        return new Queue("queue.a", true);
+    public Queue queueTopic() {
+        return new Queue("topic.queue", true);
     }
 
-    // 绑定队列 A 到 Topic 交换机，匹配路由键以 'logs.' 开头的消息
+    // 绑定队列 topic.queue 到 Topic 交换机
     @Bean
     public Binding bindingQueueA() {
-        return BindingBuilder.bind(queueA()).to(topicExchange()).with("send.message");
+        return BindingBuilder.bind(queueTopic()).to(topicExchange()).with("send.message");
     }
 
     @Bean
-    //必须是prototype类型
     public RabbitTemplate rabbitTemplate() {
         CachingConnectionFactory connectionFactory = new CachingConnectionFactory(host,port);
         connectionFactory.setUsername(username);

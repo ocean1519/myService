@@ -89,7 +89,7 @@ public class SendReceiveMessage implements RabbitTemplate.ConfirmCallback {
         }
     }
 
-    @RabbitListener(queues = "queue.a", ackMode = "MANUAL")
+    @RabbitListener(queues = "topic.queue", ackMode = "MANUAL")
     public void receiveQueueA(String message, Channel channel,  org.springframework.amqp.core.Message messageObj) throws IOException {
         LOGGER.info("收到广播消息:{}", message);
         //消息确认
